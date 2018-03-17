@@ -57,7 +57,7 @@ public Action Event_Detonate(Handle event, const char[] eventname, bool dontBroa
 {
 	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
 
-    // checkers on the client index for prevent errors
+	// checkers on the client index for prevent errors
 	if (iClient == -1 || !IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 		return;
 		
