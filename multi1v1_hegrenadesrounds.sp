@@ -30,20 +30,17 @@ public Plugin myinfo = {
   name = "CS:GO Multi1v1: He grenade battle round addon",
   author = "Franc1sco franug",
   description = "Adds an unranked He grenade battle round-type",
-  version = "1.0.0",
+  version = "1.1",
   url = "http://steamcommunity.com/id/franug"
 };
 
 public void Multi1v1_OnRoundTypesAdded() 
 {
 	// Add the custom round and get custom round index
-	g_iRoundType = Multi1v1_AddRoundType("He Grenade battle", "hegrenade", DodgeballHandler, true, false, "", true);
-	
-	// Hook grenade detonate event
-	HookEvent("hegrenade_detonate", Event_Detonate);
+	g_iRoundType = Multi1v1_AddRoundType("He Grenade battle", "hegrenade", GrenadeHandler, true, false, "", true);
 }
 
-public void DodgeballHandler(int iClient) 
+public void GrenadeHandler(int iClient) 
 {
 	// Start the custom round with a he grenade
 	GivePlayerItem(iClient, "weapon_hegrenade");
@@ -53,15 +50,44 @@ public void DodgeballHandler(int iClient)
 	SetEntProp(iClient, Prop_Data, "m_ArmorValue", 0);
 }
 
-public Action Event_Detonate(Handle event, const char[] eventname, bool dontBroadcast)
+public void OnEntityCreated(int iEntity, const char[] szClassname)
 {
-	int iClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	// Check if new entity is a hegrenade
+	if (!StrEqual(szClassname, "hegrenade_projectile"))
+		return;
+		
+	// Hook spawn
+	SDKHook(iEntity, SDKHook_Spawn, OnEntitySpawned);
+}
 
+public int OnEntitySpawned(int iEntity)
+{
+	// Get client index
+	int iClient = GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity");
+	
 	// checkers on the client index for prevent errors
 	if (iClient == -1 || !IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 		return;
 		
-	// If current round is decoy round then do timer
+	// If current round is hegrenade round then do timer
 	if(Multi1v1_GetCurrentRoundType(Multi1v1_GetArenaNumber(iClient)) == g_iRoundType)
-		GivePlayerItem(iClient, "weapon_hegrenade"); // Give new hegrenade
+		CreateTimer(1.4, Timer_GiveHe, GetClientUserId(iClient), TIMER_FLAG_NO_MAPCHANGE);
+
+}
+
+public Action Timer_GiveHe(Handle hTimer, int iUserid)
+{
+	// Get client index
+	int iClient = GetClientOfUserId(iUserid);
+		
+	// checkers on the client index for prevent errors
+	if (iClient == -1 || !IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		return;
+		
+	// Check if the current round is still the dodgeball round
+	if(Multi1v1_GetCurrentRoundType(Multi1v1_GetArenaNumber(iClient)) != g_iRoundType)
+		return;
+
+	// give a new hegrenade
+	GivePlayerItem(iClient, "weapon_hegrenade");
 }
